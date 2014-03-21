@@ -17,18 +17,18 @@ from npchat import util, verbose
 
 
 def selector(**patterns):
-    return '|'.join('(?P<{name}>{pattern})'.format(name=name, pattern=pattern)
-        for name, pattern in patterns.items())
+    return '|'.join('(?:(?P<{name}>{pattern})\s*\Z)'.format(
+        name=name, pattern=pattern) for name, pattern in patterns.items())
 
 me_is_pattern = re.compile("ME IS (?P<username>\w+)\s*\Z", re.I)
 
 action_pattern = re.compile(
     selector(
-        send="SEND(?P<users>( \w+)+)\s*\Z",
-        broadcast="BROADCAST\s*\Z",
-        logout="LOGOUT\s*\Z",
-        whoishere="WHO IS HERE\s*\Z",
-        whoami="WHO AM I\s*\Z"),
+        send="SEND(?P<users>( \w+)+)",
+        broadcast="BROADCAST",
+        logout="LOGOUT",
+        whoishere="WHO IS HERE",
+        whoami="WHO AM I"),
     re.I)
 
 

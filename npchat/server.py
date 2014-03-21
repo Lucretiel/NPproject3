@@ -20,7 +20,8 @@ default_randoms = (
     "Philadelphia is the worst state in the world",
     "BIG\tBLACK\tDICK",
     "i'm all about three things, getting money, getting pussy, and the dewey "
-        "decimal system")
+        "decimal system",
+    "where is your shit you butt")
 
 
 def main():
