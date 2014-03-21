@@ -13,7 +13,7 @@ import random
 from collections import namedtuple
 from sys import stderr
 
-from npchat import util
+from npchat import util, verbose
 
 
 def selector(**patterns):
@@ -43,7 +43,7 @@ body_pattern = re.compile(
 
 
 # Simple type to hold all the connected client data
-Client = namedtuple('Client', ('name', 'ip', 'port', 'reader'))
+Client = namedtuple('Client', ('name', 'reader'))
 
 
 class ChatError(RuntimeError):
@@ -63,12 +63,16 @@ class NameExistsError(ChatError):
 
 
 class LineError(ChatError):
+    '''
+    Error with the line. Usually means a parse or unknown command error.
+    '''
     @property
     def message(self):
         return "{error}: {line}".format(
             error=self.args[0], line=self.args[1].decode('ascii'))
 
 
+# TODO: GET RID OF ALL THE FUCKING if self.verbose CALLS GODDAMNIT
 class ChatManager:
     def __init__(self, randoms, random_rate, verbose, debug, extended):
         '''
@@ -93,15 +97,37 @@ class ChatManager:
             stderr.write(message)
 
     @asyncio.coroutine
+    def serve_forever(self, ports):
+        servers = []
+        for port in ports:
+            # Need 1 server for each port
+            server = yield from asyncio.start_server(
+                self.client_connected, None, port)
+
+            # Get the listener task
+            servers.append(server.wait_closed())
+
+            self.debug_print("Listening on port {n}\n".format(n=port))
+
+        yield from asyncio.wait(servers)
+
+    @asyncio.coroutine
     def client_connected(self, reader, writer):
         '''
         Primary client handler coroutine. One is spawned per client connection.
         '''
         self.debug_print("Client Connected\n")
+        # Get wrappers
+        if self.verbose:
+            reader, writer = verbose.make_verbose_reader_writer(
+                reader, writer)
+
         # Ensure transport is closed at end, and handle errors
         with contextlib.closing(writer), self.handle_errors(writer):
             # Get the ME IS line
             line = yield from reader.readline()
+            if self.verbose:
+                reader.print_cached()
 
             # Get the username
             match = me_is_pattern.match(line.decode('ascii'))
@@ -142,30 +168,39 @@ class ChatManager:
                         sender, body = yield
                         recent.append(sender)
                         writer.write(body)
+                        if self.verbose:
+                            writer.print_cached()
 
                     writer.writelines((
                         util.make_sender_line(random.choice(recent)),
                         random.choice(self.randoms)))
+                    if self.verbose:
+                        writer.print_cached_random()
             else:
                 while True:
                     sender, body = yield
                     writer.write(body)
+                    if self.verbose:
+                        writer.print_cached()
 
         # Add sender to chatters
         self.chatters[name] = client_sender()
 
         # Write acknowledgment
         writer.write('OK\n'.encode('ascii'))
+        if self.verbose:
+            writer.print_cached()
 
         # Get client info
-        ip, port = writer.transport.get_extra_info('peername')
+        self.debug_print("Logged in user {name}\n".format(name=name))
 
-        self.debug_print("Logged in user {name} from {ip}:{port}\n".format(
-            name=name, ip=ip, port=port))
+        # NOW we can attach the name. Before it wasn't ok, because reasons.
+        reader.name = name
+        writer.name = name
 
         # Enter context, and remove from dictionary when leaving
         try:
-            yield Client(name, ip, port, reader)
+            yield Client(name, reader)
         finally:
             del self.chatters[name]
             self.debug_print("Logged out user {name}\n".format(name=name))
@@ -199,14 +234,20 @@ class ChatManager:
                     (r for r in self.chatters if r != client.name))
 
             elif match.lastgroup == 'whoishere':
+                if(self.verbose):
+                    client.reader.print_cached()
                 self.send_to_recipients("SERVER", [client.name],
                     util.make_body('\n'.join(self.chatters)))
 
             elif match.lastgroup == 'whoami':
+                if(self.verbose):
+                    client.reader.print_cached()
                 self.send_to_recipients("SERVER", [client.name],
                     util.make_body(client.name))
 
             elif match.lastgroup == 'logout':
+                if(self.verbose):
+                    client.reader.print_cached()
                 break
 
             else:
@@ -263,6 +304,9 @@ class ChatManager:
         else:
             raise ChatError("Unknown Server Error")
 
+        if(self.verbose):
+            client.reader.print_cached()
+
         self.send_to_recipients(client.name, recipients, body_parts)
 
     def send_to_recipients(self, sender, recipients, body_parts):
@@ -292,28 +336,17 @@ class ChatManager:
             # Inform client
             if self.extended:
                 writer.write(message.encode('ascii'))
+                if self.verbose:
+                    writer.print_cached()
 
             # If we're not using extended, send normal error message
             elif isinstance(e, NameExistsError):
                 writer.write("ERROR\n".encode('ascii'))
+                if self.verbose:
+                    writer.print_cached()
 
         # Inform client of other errors and reraise
         except Exception as e:
             if self.extended:
                 writer.write('UNKNOWN SERVER ERROR\n'.encode('ascii'))
             raise
-
-    @asyncio.coroutine
-    def serve_forever(self, ports):
-        servers = []
-        for port in ports:
-            # Need 1 server for each port
-            server = yield from asyncio.start_server(
-                self.client_connected, None, port)
-
-            # Get the listener task
-            servers.append(server.wait_closed())
-
-            self.debug_print("Listening on port {n}\n".format(n=port))
-
-        yield from asyncio.wait(servers)
