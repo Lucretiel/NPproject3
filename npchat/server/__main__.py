@@ -1,4 +1,10 @@
 '''
+Created on Mar 24, 2014
+
+@author: nathan
+'''
+
+'''
 Created on Mar 17, 2014
 
 @author: nathan
@@ -6,7 +12,7 @@ Created on Mar 17, 2014
 
 import asyncio
 from argparse import ArgumentParser
-from npchat.manager import ChatManager
+from npchat.server.manager import ChatManager
 
 # TODO: more
 default_randoms = (
@@ -38,8 +44,6 @@ def main():
     parser.add_argument('-r', '--rate', type=int, default=3,
         help="How many normal messages to send between random messages "
         "(default: 3)", dest='random_rate')
-    parser.add_argument('-x', '--extended', action='store_true',
-        help="Use Nathan's protocol extensions")
     parser.add_argument('-E', '--exclude', action='store_false',
         help="Exclude the build-in random messages", dest='use_default')
     parser.add_argument("ports", nargs='+', type=int, metavar='PORT',
@@ -48,11 +52,10 @@ def main():
     args = parser.parse_args()
     if args.use_default:
         args.randoms.extend(default_randoms)
-    chat_manager = ChatManager(args.randoms, args.random_rate, args.verbose,
-        args.debug, args.extended)
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(chat_manager.serve_forever(args.ports))
+    asyncio.get_event_loop().run_until_complete(
+        ChatManager(args.randoms, args.random_rate, args.verbose,
+        args.debug).serve_forever(args.ports))
 
 if __name__ == '__main__':
     main()
