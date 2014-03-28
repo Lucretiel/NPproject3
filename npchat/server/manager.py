@@ -159,7 +159,7 @@ class ChatManager:
 
     def who_is_here(self, recipient):
         self.send_to_recipients("SERVER", [recipient],
-            common.make_body('\n'.join(self.chatters)))
+            common.make_body('\n'.join(sorted(self.chatters))))
 
     @contextlib.contextmanager
     def handle_errors(self, writer):

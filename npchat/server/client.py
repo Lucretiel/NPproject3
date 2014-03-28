@@ -83,37 +83,30 @@ class Client:
         # Loop until a logout
         with contextlib.suppress(Logout, asyncio.IncompleteReadError):
             while True:
-                self.debug_print("{name}: awaiting action\n")
                 # Get the send line (SEND name name / BROADCAST)
                 line = yield from self.reader.readline()
+                decoded = line.decode('ascii')
 
-                yield from self.handle_action(line, manager)
+                # Extract arguments and dispatch to handler
+                try:
+                    # Get handler. May raise KeyError
+                    action, handler = self.action_handlers.get_handler(decoded)
 
-    @asyncio.coroutine
-    def handle_action(self, line, manager):
-        '''
-        Dispatch to an action handler.
-        '''
-        decoded = line.decode('ascii')
-        try:
-            # Get handler. May raise KeyError
-            action, handler = self.action_handlers.get_handler(decoded)
+                    # Extract arguments. May raise ValueError
+                    from_user, *lineargs = decoded[len(action):].split()
 
-            # Extract arguments. May raise ValueError
-            from_user, *lineargs = decoded[len(action):].split()
+                    # Match username
+                    if from_user.casefold() != self.name:
+                        raise LineError("Name doesn't match", line)
 
-            # Match username
-            if from_user.casefold() != self.name:
-                raise LineError("Name doesn't match", line)
+                except KeyError as e:  # Handler lookup failed
+                    raise LineError("Invalid action", line) from e
 
-        except KeyError as e:  # Handler lookup failed
-            raise LineError("Invalid action", line) from e
+                except ValueError as e:  # Extraction of from_user failed
+                    raise LineError("No from_user specified", line) from e
 
-        except ValueError as e:  # Extraction of from_user failed
-            raise LineError("No from_user specified", line) from e
-
-        else:
-            return handler(self, lineargs, manager)
+                else:
+                    yield from handler(self, lineargs, manager)
 
     @action_handlers.handler("SEND")
     @asyncio.coroutine
