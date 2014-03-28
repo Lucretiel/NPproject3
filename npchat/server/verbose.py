@@ -14,19 +14,25 @@ class VerboseStream:
     def __init__(self, ip, port):
         self.location = "{ip}:{port}".format(ip=ip, port=port)
         self.name = None
-
+    
     @property
-    def rendered_name(self):
-        if self.name is None:
-            return self.location
+    def name(self):
+        return self._name
+    
+    @name.setter
+    def name(self, name):
+        self._name = name
+        if what is None:
+            header = "{self.prefix} {self.location}:"
         else:
-            return "{self.name} ({self.location})".format(self=self)
+            header = "{self.prefix} {self.name} ({self.location}):"
+        self.header = header.format(self=self)
 
     def print_thing(self, thing):
-        print("{self.prefix} {self.rendered_name}:\n{thing}".format(
-            self=self,
-            thing='\n'.join('  ' + line.rstrip()
-                for line in thing.decode('ascii').rstrip().split('\n'))))
+        #Set prefix in derived class
+        print(self.header)
+        for line in thing.decode('ascii').rstrip().split('\n'):
+            print(' ', line)
 
 
 class VerboseReader(VerboseStream):
