@@ -38,7 +38,8 @@ setup(
     entry_points={
         'console_scripts': [
             'chat_server = npchat.server.main:main',
-            'npchat_server = npchat.server.main:main'
+            'npchat_server = npchat.server.main:main',
+            'npchat_test_client = npchat.test_client:main'
         ]
     }
 )
