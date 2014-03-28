@@ -9,14 +9,35 @@ This class manages creating the client instances and forwarding messages
 import asyncio
 import contextlib
 import re
-from sys import stderr
+from sys import stdout
 
 from npchat import common
 from npchat.server.exceptions import ChatError, LineError
 from npchat.server.client import Client
-
+from npchat.server.verbose import make_verbose_reader_writer
 
 me_is_pattern = re.compile("ME IS (?P<username>\w+)\s*\Z")
+
+
+class NewlineEnforcedReader:
+    '''
+    Helper class for StreamReader to ensure that readline always yields a
+    complete line
+    '''
+
+    def __init__(self, reader):
+        self.reader = reader
+
+    @asyncio.coroutine
+    def readline(self):
+        line = yield from self.reader.readline()
+        if not line.endswith(b'\n'):
+            raise asyncio.IncompleteReadError(line, None)
+        return line
+
+    @asyncio.coroutine
+    def readexactly(self, n):
+        return self.reader.readexactly(n)
 
 
 class ChatManager:
@@ -36,9 +57,11 @@ class ChatManager:
                 for r in randoms]
 
         if debug:
-            self.debug_print = stderr.write
+            self.debug_print = stdout.write
         else:
             self.debug_print = lambda message: None
+
+        self.verbose = verbose
 
     @asyncio.coroutine
     def serve_forever(self, ports):
@@ -62,6 +85,10 @@ class ChatManager:
         Primary client handler coroutine. One is spawned per client connection.
         '''
         self.debug_print("Client Connected\n")
+        reader = NewlineEnforcedReader(reader)
+
+        if self.verbose:
+            reader, writer = make_verbose_reader_writer(reader, writer)
 
         # Ensure transport is closed at end, and handle errors
         with contextlib.closing(writer), self.handle_errors(writer):
@@ -89,20 +116,23 @@ class ChatManager:
         if name in self.chatters:
             raise ChatError("Username {name} already exists".format(name=name))
 
-        client = Client(name, reader, writer, self.debug_print)
+        # Create the client object
+        client = Client(name, reader, writer, self.debug_print, self.randoms,
+            self.random_rate)
 
         # Add sender to chatters
-        self.chatters[name] = client.message_sender(
-            self.randoms, self.random_rate)
+        self.chatters[name] = client
 
-        # Write acknowledgment
-        writer.write('OK\n'.encode('ascii'))
-
-        # Get client info
-        self.debug_print("Logged in user {name}\n".format(name=name))
-
-        # Enter context, and remove from dictionary when leaving.
+        # Ensure client is removed from chatters
         try:
+            self.debug_print("Logged in user {name}\n".format(name=name))
+            # Write acknowledgment
+            writer.write('OK\n'.encode('ascii'))
+            # For verbose read/write, set the name
+
+            reader.name = writer.name = name
+
+            # Enter context
             yield client
         finally:
             del self.chatters[name]
@@ -118,15 +148,14 @@ class ChatManager:
             b''.join(common.prepare_full_body(sender, body_parts)))
 
         if recipients is not None:
+            # Construct a set to eliminate duplicates
+            recipients = set(recipient.casefold() for recipient in recipients)
             for recipient in recipients:
                 with contextlib.suppress(KeyError):
-                    self.chatters[recipient.casefold()].send(message)
+                    self.chatters[recipient].send_message(message)
         else:
-            for sender in self.chatters.values():
-                sender.send(message)
-
-    def broadcast(self, sender, body_parts):
-        self.send_to_recipients(sender, None, body_parts)
+            for client in self.chatters.values():
+                client.send_message(message)
 
     def who_is_here(self, recipient):
         self.send_to_recipients("SERVER", [recipient],
@@ -144,7 +173,7 @@ class ChatManager:
 
         # Handle chat errors
         except ChatError as e:
-            message = "ERROR {e.message}\n".format(e=e)
+            message = "ERROR: {e.message}\n".format(e=e)
             # Debug Print
             self.debug_print(message)
 
@@ -153,5 +182,8 @@ class ChatManager:
 
         # Inform client of other errors and reraise
         except Exception as e:
+            # Inform client
             writer.write('ERROR UNKNOWN SERVER ERROR\n'.encode('ascii'))
+
+            # Reraise
             raise

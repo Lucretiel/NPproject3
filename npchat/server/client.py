@@ -60,32 +60,20 @@ class Client:
     # Dictionary of registered actions
     action_handlers = ActionHandlers()
 
-    @asyncio.coroutine
-    def handle_action(self, line, manager):
-        '''
-        Dispatch to an action handler.
-        '''
-        decoded = line.decode('ascii')
-        try:
-            action, handler = self.action_handlers.get_handler(decoded)
-        except KeyError as e:
-            raise LineError("Invalid action", line) from e
-        else:
-            from_user, *lineargs = decoded[len(action):].split()
-            from_user = from_user.casefold()
-            if from_user != self.name:
-                raise LineError("Name doesn't match", line)
-            yield from handler(self, lineargs, manager)
-
     ##################################
     # PRIMARY CLIENT IMPLEMENTATION
     ##################################
 
-    def __init__(self, name, reader, writer, debug_print):
+    def __init__(self, name, reader, writer, debug_print, randoms,
+            random_rate):
         self.name = name
         self.reader = reader
         self.writer = writer
-        self.debug_print = debug_print
+        self.debug_printer = debug_print
+        self.send_message = self.message_sender(randoms, random_rate).send
+
+    def debug_print(self, what):
+        self.debug_printer(what.format(name=self.name))
 
     @asyncio.coroutine
     def handle_messages(self, manager):
@@ -93,37 +81,62 @@ class Client:
         Core message handling loop
         '''
         # Loop until a logout
-        with contextlib.suppress(Logout):
+        with contextlib.suppress(Logout, asyncio.IncompleteReadError):
             while True:
-                self.debug_print(
-                    "Awaiting action from {name}\n".format(name=self.name))
+                self.debug_print("{name}: awaiting action\n")
                 # Get the send line (SEND name name / BROADCAST)
                 line = yield from self.reader.readline()
 
-                # If no data was received, assume connection was closed
-                if not line:
-                    return True
-
                 yield from self.handle_action(line, manager)
+
+    @asyncio.coroutine
+    def handle_action(self, line, manager):
+        '''
+        Dispatch to an action handler.
+        '''
+        decoded = line.decode('ascii')
+        try:
+            # Get handler. May raise KeyError
+            action, handler = self.action_handlers.get_handler(decoded)
+
+            # Extract arguments. May raise ValueError
+            from_user, *lineargs = decoded[len(action):].split()
+
+            # Match username
+            if from_user.casefold() != self.name:
+                raise LineError("Name doesn't match", line)
+
+        except KeyError as e:  # Handler lookup failed
+            raise LineError("Invalid action", line) from e
+
+        except ValueError as e:  # Extraction of from_user failed
+            raise LineError("No from_user specified", line) from e
+
+        else:
+            return handler(self, lineargs, manager)
 
     @action_handlers.handler("SEND")
     @asyncio.coroutine
     def handle_send(self, recipients, manager):
-        yield from self.read_and_send(manager, recipients)
+        self.debug_print("{name}: Performing send\n")
+        return self.read_and_send(manager, recipients)
 
     @action_handlers.handler("BROADCAST")
     @asyncio.coroutine
     def handle_broadcast(self, _, manager):
-        yield from self.read_and_send(manager)
+        self.debug_print("{name}: Performing broadcast\n")
+        return self.read_and_send(manager)
 
     @action_handlers.handler("WHO HERE")
     @asyncio.coroutine
     def handle_who_here(self, _, manager):
+        self.debug_print("{name}: Checking who is here\n")
         manager.who_is_here(self.name)
 
     @action_handlers.handler("LOGOUT")
     @asyncio.coroutine
     def handle_logout(self, _, manager):
+        self.debug_print("{name}: Logging out\n")
         raise Logout
 
     @asyncio.coroutine
@@ -175,15 +188,12 @@ class Client:
         else:
             raise ServerError()
 
-        if recipients:
-            manager.send_to_recipients(self.name, recipients, body_parts)
-        else:
-            manager.broadcast(self.name, body_parts)
+        manager.send_to_recipients(self.name, recipients, body_parts)
 
     @common.consumer
     def message_sender(self, randoms, random_rate):
         '''
-        Consumer-generator to handle sending messages to this. Primarily
+        Consumer-generator to handle sending messages to this client. Primarily
         responsible for also injecting random bonus messages
         '''
         # If we're using randoms

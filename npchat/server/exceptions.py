@@ -18,7 +18,7 @@ class LineError(ChatError):
     @property
     def message(self):
         return "{error}: {line}".format(
-            error=self.args[0], line=self.args[1].decode('ascii'))
+            error=self.args[0], line=self.args[1].decode('ascii').strip())
 
 
 class ServerError(ChatError):

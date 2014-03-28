@@ -9,7 +9,9 @@ from setuptools import setup
 setup(
     name="npchat",
     version="0.1.0",
-    packages=['npchat'],
+    packages=[
+        'npchat',
+        'npchat.server'],
     # test_suite='test',
     platforms='any',
 
@@ -35,8 +37,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'chat_server = npchat.serverb:main',
-            'pychat_server = npchat.serverb:main'
+            'chat_server = npchat.server.main:main',
+            'npchat_server = npchat.server.main:main'
         ]
     }
 )
