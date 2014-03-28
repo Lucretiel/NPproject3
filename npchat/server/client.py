@@ -81,7 +81,9 @@ class Client:
         Core message handling loop
         '''
         # Loop until a logout
-        with contextlib.suppress(Logout, asyncio.IncompleteReadError):
+        with contextlib.suppress(Logout, asyncio.IncompleteReadError,
+            ConnectionError):
+
             while True:
                 # Get the send line (SEND name name / BROADCAST)
                 line = yield from self.reader.readline()
