@@ -64,20 +64,18 @@ class ChatManager:
         self.verbose = verbose
 
     @asyncio.coroutine
-    def serve_forever(self, ports):
-        servers = []
-        for port in ports:
-            # Need 1 server for each port
-            server = yield from asyncio.start_server(
-                self.client_connected, None, port)
-            # TODO: UDP
+    def serve_forever(self, port):
+        server = yield from asyncio.start_server(
+            self.client_connected, None, port)
+        # TODO: UDP
 
-            # Get the listener task
-            servers.append(server.wait_closed())
+        self.debug_print("Listening on port {n}\n".format(n=port))
 
-            self.debug_print("Listening on port {n}\n".format(n=port))
+        yield from server.wait_closed()
 
-        yield from asyncio.wait(servers)
+    @asyncio.coroutine
+    def serve_forever_multi(self, ports):
+        yield from asyncio.wait([self.serve_forever(port) for port in ports])
 
     @asyncio.coroutine
     def client_connected(self, reader, writer):

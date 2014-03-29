@@ -46,6 +46,8 @@ def main():
         "(default: 3)", dest='random_rate')
     parser.add_argument('-E', '--exclude', action='store_false',
         help="Exclude the build-in random messages", dest='use_default')
+    parser.add_argument('-m', '--multiverse', action='store_true',
+        help="Make each port a seperate chat universe")
     parser.add_argument("ports", nargs='+', type=int, metavar='PORT',
         help="TCP/UDP port(s) to listen on")
 
@@ -53,9 +55,15 @@ def main():
     if args.use_default:
         args.randoms.extend(default_randoms)
 
-    asyncio.get_event_loop().run_until_complete(
-        ChatManager(args.randoms, args.random_rate, args.verbose,
-        args.debug).serve_forever(args.ports))
+    run_forever = asyncio.get_event_loop().run_until_complete
+
+    if args.multiverse:
+        run_forever(asyncio.wait([ChatManager(args.randoms, args.random_rate,
+            args.verbose, args.debug).serve_forever(port)
+            for port in args.ports]))
+    else:
+        run_forever(ChatManager(args.randoms, args.random_rate, args.verbose,
+            args.debug).serve_forever_multi(args.ports))
 
 if __name__ == '__main__':
     main()
