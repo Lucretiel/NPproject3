@@ -55,6 +55,22 @@ def test_npchat_reader(name, reader):
 
 
 @asyncio.coroutine
+def test_npchat_devnull(reader):
+    '''
+    CONSUME ALL INPUT AND THROW IT INTO THE VOID
+
+    CONSUME
+
+    CONSUUUUUUUUME
+    '''
+
+    # Read kilobyte chunks forever
+    body = yield from reader.read(1024)
+    while body:
+        body = yield from reader.reader(1024)
+
+
+@asyncio.coroutine
 def test_npchat(username, messages, host, port, do_output, alive):
     print("Connecting {username} on port {port}".format(
         username=username, port=port))
@@ -63,10 +79,9 @@ def test_npchat(username, messages, host, port, do_output, alive):
     reader, writer = yield from asyncio.open_connection(host, port)
 
     if do_output:
-        # Creating a task automatically schedules
         reader_task = asyncio.Task(test_npchat_reader(username, reader))
     else:
-        reader_task = None
+        reader_task = asyncio.Task(test_npchat_devnull(reader))
 
     # Login
     writer.write("ME IS {username}\n"
@@ -102,8 +117,7 @@ def test_npchat(username, messages, host, port, do_output, alive):
     yield from asyncio.sleep(1)
     writer.write('LOGOUT {name}\n'.format(name=username).encode('ascii'))
 
-    if reader_task is not None:
-        asyncio.wait_for(reader_task, None)
+    asyncio.wait(reader_task, None)
 
 
 def main():
