@@ -25,8 +25,8 @@ class VerboseStream:
         if what is None:
             header = "{self.prefix} {self.location}:"
         else:
-            header = "{self.prefix} {self.name} ({self.location}):"
-        self.header = header.format(self=self)
+            header = "{self.prefix} {name} ({self.location}):"
+        self.header = header.format(self=self, name=name)
 
     def print_thing(self, thing):
         #Set prefix in derived class
