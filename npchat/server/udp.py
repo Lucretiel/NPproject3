@@ -7,7 +7,7 @@ This class handles dispatching UPD things. It is closely tied to the Manager
 class, but is kept separate to keep Manager's implementation simple.
 '''
 
-from asyncio import DatagramProtocol
+from asyncio import DatagramProtocol, StreamReader
 from npchat import common
 import asyncio
 
@@ -18,13 +18,16 @@ class UDPChatWriter:
         self.addr = addr
 
     def write(self, data):
-        self.transport.write(data, self.addr)
+        self.transport.sendto(data, self.addr)
 
     def writelines(self, data):
         self.write(b''.join(data))
 
     def close(self):
         self.transport.close()
+
+    def get_extra_info(self, info):
+        return {'peername': self.addr}[info]
 
 
 class UDPProtocol(DatagramProtocol):
@@ -40,17 +43,33 @@ class UDPProtocol(DatagramProtocol):
         self.transport = transport
 
     def datagram_received(self, data, addr):
+        self.manager.debug_print("Received Datagram\n")
         try:
-            client = self.udp_clients[addr]
+            reader = self.udp_clients[addr]
         except KeyError:
-            client = self.udp_clients[addr] = self.client_handler(addr)
+            reader = self.start_client(addr)
 
-        client.send(data)
+        reader.feed_data(data)
 
-    @common.consumer
-    def client_handler(self, addr):
-        reader = asyncio.StreamReader()
+    def error_received(self, exc):
+        print("ERROR:", exc)
+
+    def start_client(self, addr):
+        self.manager.debug_print("Creating new datagram client\n")
+        reader = StreamReader()
         writer = UDPChatWriter(self.transport, addr)
 
+        self.udp_clients[addr] = reader
 
+        asyncio.Task(self.client_coro(addr, reader, writer))
+
+        return reader
+
+    @asyncio.coroutine
+    def client_coro(self, addr, reader, writer):
+        try:
+            yield from self.manager.client_connected(reader, writer)
+        finally:
+            self.manager.debug_print("Removing datagram client")
+            del self.udp_clients[addr]
 

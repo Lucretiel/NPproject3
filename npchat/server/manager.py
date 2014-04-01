@@ -74,15 +74,16 @@ class ChatManager:
     @asyncio.coroutine
     def serve_forever_udp(self, port):
         loop = asyncio.get_event_loop()
-        yield from loop.create_datagram_endpoint(UDPProtocol, (None, port))
+        yield from loop.create_datagram_endpoint(UDPProtocol.factory(self),
+            ("0.0.0.0", port))
 
         self.debug_print("UDP: Listening on port {n}\n".format(n=port))
 
     @asyncio.coroutine
     def serve_forever(self, port):
         return asyncio.wait([
-            self.serve_forever_tcp(port),
-            self.serve_forever_udp(port)])
+            self.serve_forever_udp(port),
+            self.serve_forever_tcp(port)])
 
     @asyncio.coroutine
     def client_connected(self, reader, writer):
