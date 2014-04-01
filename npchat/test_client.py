@@ -42,16 +42,17 @@ def test_npchat_reader(name, reader):
         size = yield from readline()
         if size.startswith('C'):
             body = []
-            while size != 'C0':
+            size = int(size[1:])
+            while size != 0:
                 body_part = yield from readbody(int(size[1:]))
                 body.append(body_part)
-                size = yield from readline()
+                size = int((yield from readline())[1:])
             body = ''.join(body)
         else:
             body = yield from readbody(int(size))
 
-        body = '\n'.join('  ' + line.rstrip() for line in body.split('\n'))
-        print(body)
+        for line in body.split('\n'):
+            print(' ', line.rstrip())
 
 
 @asyncio.coroutine

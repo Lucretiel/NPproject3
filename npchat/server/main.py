@@ -55,15 +55,19 @@ def main():
     if args.use_default:
         args.randoms.extend(default_randoms)
 
-    run_forever = asyncio.get_event_loop().run_until_complete
-
     if args.multiverse:
-        run_forever(asyncio.wait([ChatManager(args.randoms, args.random_rate,
-            args.verbose, args.debug).serve_forever(port)
-            for port in args.ports]))
+        # Each port is its own manager
+        tasks = [ChatManager(args.randoms, args.random_rate, args.verbose,
+            args.debug).serve_forever(port) for port in args.ports]
     else:
-        run_forever(ChatManager(args.randoms, args.random_rate, args.verbose,
-            args.debug).serve_forever_multi(args.ports))
+        # One manager to rule them all
+        manager = ChatManager(args.randoms, args.random_rate, args.verbose,
+            args.debug)
+        tasks = [manager.serve_forever(port) for port in args.ports]
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.run_forever()
 
 if __name__ == '__main__':
     main()

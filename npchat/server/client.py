@@ -27,7 +27,9 @@ class Logout(Exception):
 
 class ActionHandlers:
     '''
-    ActionHandlers registers functions to handle different actions.
+    ActionHandlers registers functions to handle different actions. Use the
+    `handler` decorator to register a function as a handler for a prefix, and
+    the `get_handler` function to perform a lookup.
     '''
     def __init__(self):
         self.handlers = {}
@@ -189,14 +191,13 @@ class Client:
     def message_sender(self, randoms, random_rate):
         '''
         Consumer-generator to handle sending messages to this client. Primarily
-        responsible for also injecting random bonus messages
+        responsible for also injecting random bonus messages.
         '''
         # If we're using randoms
         if randoms and random_rate > 0:
+            # set would be better, but random.choice needs a sequence
+            recent_senders = []
             while True:
-                # set would be better, but random.choice needs a sequence
-                recent_senders = list()
-
                 # Perform random_rate normal writes, then a random write
                 for _ in range(random_rate):
                     sender, body = yield
@@ -206,6 +207,8 @@ class Client:
                 self.writer.writelines((
                     common.make_sender_line(random.choice(recent_senders)),
                     random.choice(randoms)))
+
+                recent_senders.clear()
         else:
             while True:
                 _, body = yield

@@ -15,6 +15,7 @@ from npchat import common
 from npchat.server.exceptions import ChatError, LineError
 from npchat.server.client import Client
 from npchat.server.verbose import make_verbose_reader_writer
+from npchat.server.udp import UDPProtocol
 
 me_is_pattern = re.compile("ME IS (?P<username>\w+)\s*\Z")
 
@@ -64,18 +65,24 @@ class ChatManager:
         self.verbose = verbose
 
     @asyncio.coroutine
-    def serve_forever(self, port):
-        server = yield from asyncio.start_server(
+    def serve_forever_tcp(self, port):
+        yield from asyncio.start_server(
             self.client_connected, None, port)
-        # TODO: UDP
 
-        self.debug_print("Listening on port {n}\n".format(n=port))
-
-        yield from server.wait_closed()
+        self.debug_print("TCP: Listening on port {n}\n".format(n=port))
 
     @asyncio.coroutine
-    def serve_forever_multi(self, ports):
-        yield from asyncio.wait([self.serve_forever(port) for port in ports])
+    def serve_forever_udp(self, port):
+        loop = asyncio.get_event_loop()
+        yield from loop.create_datagram_endpoint(UDPProtocol, (None, port))
+
+        self.debug_print("UDP: Listening on port {n}\n".format(n=port))
+
+    @asyncio.coroutine
+    def serve_forever(self, port):
+        return asyncio.wait([
+            self.serve_forever_tcp(port),
+            self.serve_forever_udp(port)])
 
     @asyncio.coroutine
     def client_connected(self, reader, writer):
