@@ -9,7 +9,7 @@ import random
 import re
 
 from npchat import common
-from npchat.server.exceptions import LineError, ServerError
+from npchat.server.exceptions import LineError, ServerError, ChatError
 import contextlib
 
 
@@ -84,8 +84,7 @@ class Client:
         '''
         # Loop until a logout
         with contextlib.suppress(Logout, asyncio.IncompleteReadError,
-            ConnectionError):
-
+                ConnectionError):
             while True:
                 # Get the send line (SEND name name / BROADCAST)
                 line = yield from self.reader.readline()

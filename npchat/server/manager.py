@@ -20,29 +20,33 @@ from npchat.server.udp import UDPProtocol
 me_is_pattern = re.compile("ME IS (?P<username>\w+)\s*\Z")
 
 
-class NewlineEnforcedReader:
+class EnhancedReader:
     '''
-    Helper class for StreamReader to ensure that readline always yields a
-    complete line
+    Helper class for StreamReader. Serves two purposes: To establish a timeout
+    on reads, and to ensure that readline always returns a complete line, or
+    else raises an IncompleteReadError, like readexactly
     '''
 
-    def __init__(self, reader):
+    def __init__(self, reader, timeout):
         self.reader = reader
+        self.timeout = timeout
 
     @asyncio.coroutine
     def readline(self):
-        line = yield from self.reader.readline()
+        line = yield from asyncio.wait_for(self.reader.readline(),
+            self.timeout)
+
         if not line.endswith(b'\n'):
             raise asyncio.IncompleteReadError(line, None)
         return line
 
     @asyncio.coroutine
     def readexactly(self, n):
-        return self.reader.readexactly(n)
+        return asyncio.wait_for(self.reader.readexactly(n), self.timeout)
 
 
 class ChatManager:
-    def __init__(self, randoms, random_rate, verbose, debug):
+    def __init__(self, randoms, random_rate, verbose, debug, timeout):
         '''
         Initialize a chat manager
 
@@ -63,6 +67,7 @@ class ChatManager:
             self.debug_print = lambda message: None
 
         self.verbose = verbose
+        self.timeout = timeout
 
     @asyncio.coroutine
     def serve_forever_tcp(self, port):
@@ -91,7 +96,7 @@ class ChatManager:
         Primary client handler coroutine. One is spawned per client connection.
         '''
         self.debug_print("Client Connected\n")
-        reader = NewlineEnforcedReader(reader)
+        reader = EnhancedReader(reader, self.timeout)
 
         if self.verbose:
             reader, writer = make_verbose_reader_writer(reader, writer)
@@ -184,6 +189,12 @@ class ChatManager:
             self.debug_print(message)
 
             # Inform client
+            writer.write(message.encode('ascii'))
+
+        except asyncio.TimeoutError as e:
+            message = "ERROR: Timed Out\n"
+
+            self.debug_print(message)
             writer.write(message.encode('ascii'))
 
         # Inform client of other errors and reraise

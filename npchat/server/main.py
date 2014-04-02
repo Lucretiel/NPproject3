@@ -38,7 +38,7 @@ def main():
         help="Enable standard verbose output")
     parser.add_argument('-d', "--debug", action='store_true',
         help="Print additional status messages")
-    parser.add_argument('-e', "--extra", action='append', dest='randoms',
+    parser.add_argument('-e', "--extra", nargs='+', dest='randoms',
         help="Additional random phrases to inject", metavar='MESSAGE',
         default=[])
     parser.add_argument('-r', '--rate', type=int, default=3,
@@ -48,6 +48,8 @@ def main():
         help="Exclude the build-in random messages", dest='use_default')
     parser.add_argument('-m', '--multiverse', action='store_true',
         help="Make each port a seperate chat universe")
+    parser.add_argument('-t', '--timeout', type=int, default=60,
+        help="Amount of time to wait for a read before disconnecting")
     parser.add_argument("ports", nargs='+', type=int, metavar='PORT',
         help="TCP/UDP port(s) to listen on")
 
@@ -58,11 +60,12 @@ def main():
     if args.multiverse:
         # Each port is its own manager
         tasks = [ChatManager(args.randoms, args.random_rate, args.verbose,
-            args.debug).serve_forever(port) for port in args.ports]
+            args.debug, args.timeouts).serve_forever(port)
+            for port in args.ports]
     else:
         # One manager to rule them all
         manager = ChatManager(args.randoms, args.random_rate, args.verbose,
-            args.debug)
+            args.debug, args.timeout)
         tasks = [manager.serve_forever(port) for port in args.ports]
 
     loop = asyncio.get_event_loop()

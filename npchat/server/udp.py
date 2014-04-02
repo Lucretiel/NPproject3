@@ -7,8 +7,6 @@ This class handles dispatching UPD things. It is closely tied to the Manager
 class, but is kept separate to keep Manager's implementation simple.
 '''
 
-from asyncio import DatagramProtocol, StreamReader
-from npchat import common
 import asyncio
 
 
@@ -30,7 +28,7 @@ class UDPChatWriter:
         return {'peername': self.addr}[info]
 
 
-class UDPProtocol(DatagramProtocol):
+class UDPProtocol(asyncio.DatagramProtocol):
     @classmethod
     def factory(cls, manager):
         return lambda: cls(manager)
@@ -51,12 +49,9 @@ class UDPProtocol(DatagramProtocol):
 
         reader.feed_data(data)
 
-    def error_received(self, exc):
-        print("ERROR:", exc)
-
     def start_client(self, addr):
         self.manager.debug_print("Creating new datagram client\n")
-        reader = StreamReader()
+        reader = asyncio.StreamReader()
         writer = UDPChatWriter(self.transport, addr)
 
         self.udp_clients[addr] = reader
@@ -72,4 +67,3 @@ class UDPProtocol(DatagramProtocol):
         finally:
             self.manager.debug_print("Removing datagram client")
             del self.udp_clients[addr]
-

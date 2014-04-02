@@ -78,4 +78,3 @@ class VerboseWriter(VerboseStream):
 def make_verbose_reader_writer(reader, writer):
     ip, port = writer.get_extra_info('peername')
     return VerboseReader(reader, ip, port), VerboseWriter(writer, ip, port)
-
