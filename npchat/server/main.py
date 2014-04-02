@@ -10,7 +10,6 @@ import asyncio
 from npchat.server.manager import ChatManager
 
 
-# TODO: more
 default_randoms = (
     "Hey, you're kinda hot",
     "No way!",
@@ -20,10 +19,9 @@ default_randoms = (
     "I'm not touching yours, I'm only touching mine",
     "I want you to lose so hard you go inactive",
     "Philadelphia is the worst state in the world",
-    "BIG\tBLACK\tDICK",
-    "i'm all about three things, getting money, getting pussy, and the dewey "
-        "decimal system",
-    "where is your shit you butt")
+    "You startled my cat",
+    "Sweet potato rolls are the best rolls"
+    )
 
 
 def main():
