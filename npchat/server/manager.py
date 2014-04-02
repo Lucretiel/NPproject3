@@ -12,10 +12,11 @@ import re
 from sys import stdout
 
 from npchat import common
-from npchat.server.exceptions import ChatError, LineError
 from npchat.server.client import Client
-from npchat.server.verbose import make_verbose_reader_writer
+from npchat.server.exceptions import ChatError, LineError
 from npchat.server.udp import UDPProtocol
+from npchat.server.verbose import make_verbose_reader_writer
+
 
 me_is_pattern = re.compile("ME IS (?P<username>\w+)\s*\Z")
 

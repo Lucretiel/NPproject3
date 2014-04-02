@@ -5,12 +5,12 @@ Created on Mar 24, 2014
 '''
 
 import asyncio
+import contextlib
 import random
 import re
 
 from npchat import common
 from npchat.server.exceptions import LineError, ServerError
-import contextlib
 
 
 body_pattern = re.compile(

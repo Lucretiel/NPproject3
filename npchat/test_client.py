@@ -4,12 +4,12 @@ Created on Mar 28, 2014
 @author: nathan
 '''
 
+import argparse
 import asyncio
 import random
-import argparse
+from time import time
 
 from npchat import common
-from time import time
 
 
 @asyncio.coroutine

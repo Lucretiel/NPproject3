@@ -4,9 +4,11 @@ Created on Mar 17, 2014
 @author: nathan
 '''
 
-import asyncio
 from argparse import ArgumentParser
+import asyncio
+
 from npchat.server.manager import ChatManager
+
 
 # TODO: more
 default_randoms = (
