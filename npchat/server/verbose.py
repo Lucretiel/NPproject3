@@ -23,14 +23,14 @@ class VerboseStream:
     def name(self, name):
         self._name = name
         if name is None:
-            header = "{self.prefix} {self.location}:"
+            self.header = self.location
         else:
-            header = "{self.prefix} {name} ({self.location}):"
-        self.header = header.format(self=self, name=name)
+            self.header = "{name} ({location}):".format(
+                name=name, location=self.location)
 
     def print_thing(self, thing):
         # Set prefix in derived class
-        print(self.header)
+        print(self.prefix, self.header)
         for line in thing.decode('ascii').rstrip().split('\n'):
             print(' ', line)
 
@@ -68,7 +68,6 @@ class VerboseWriter(VerboseStream):
         self.writer.write(body)
 
     def writelines(self, lines):
-        # It'd be nice to do writer.writelines, but why bother?
         self.write(b''.join(lines))
 
     def close(self):

@@ -9,7 +9,7 @@ import random
 import re
 
 from npchat import common
-from npchat.server.exceptions import LineError, ServerError, ChatError
+from npchat.server.exceptions import LineError, ServerError
 import contextlib
 
 
@@ -72,7 +72,8 @@ class Client:
         self.reader = reader
         self.writer = writer
         self.debug_printer = debug_print
-        self.send_message = self.message_sender(randoms, random_rate).send
+        if randoms and random_rate > 0:
+            self.send_message = self.message_sender(randoms, random_rate).send
 
     def debug_print(self, what):
         self.debug_printer(what.format(name=self.name))
@@ -186,29 +187,34 @@ class Client:
 
         manager.send_to_recipients(self.name, recipients, body_parts)
 
+    def send_message(self, message):
+        '''
+        Send a message to the connected client. Note that, if there are random
+        messages being injected, this is overridden in __init__ by
+        `message_sender`, below.
+        '''
+        _, body = message
+        self.writer.write(body)
+
     @common.consumer
     def message_sender(self, randoms, random_rate):
         '''
         Consumer-generator to handle sending messages to this client. Primarily
         responsible for also injecting random bonus messages.
         '''
-        # If we're using randoms
-        if randoms and random_rate > 0:
-            # set would be better, but random.choice needs a sequence
-            recent_senders = []
-            while True:
-                # Perform random_rate normal writes, then a random write
-                for _ in range(random_rate):
-                    sender, body = yield
-                    recent_senders.append(sender)
-                    self.writer.write(body)
-
-                self.writer.writelines((
-                    common.make_sender_line(random.choice(recent_senders)),
-                    random.choice(randoms)))
-
-                recent_senders.clear()
-        else:
-            while True:
-                _, body = yield
+        # set would be better, but random.choice needs a sequence
+        recent_senders = []
+        while True:
+            # Perform random_rate normal writes, then a random write
+            for _ in range(random_rate):
+                sender, body = yield
+                recent_senders.append(sender)
                 self.writer.write(body)
+
+            self.writer.prefix = "SENT (randomly!) to"
+            self.writer.writelines((
+                common.make_sender_line(random.choice(recent_senders)),
+                random.choice(randoms)))
+            del self.writer.prefix
+
+            recent_senders.clear()

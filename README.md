@@ -83,3 +83,6 @@ In various office hours sessions with Professor Goldschmidt, he confirmed that t
 - Silently ignoring sends to a nonexistent user.
     - If you send to multiple users (`SEND from_user recipient1 recipient2`), only the logged in users will receive the message.
 - Excess data on the action lines is ignored. Currently, the client data parser strips the directive (`SEND`, `BROADCAST`, etc) from the front of the line, then tokenizes the rest of the line by whitespace. The first token is the `from_user` and, the rest are taken as "command arguments," even though only SEND uses them.
+- Random messages do not have a trailing newline
+- The `WHO HERE` username list does not have a trainline newline
+

@@ -72,7 +72,7 @@ def test_npchat_devnull(reader):
 
 
 @asyncio.coroutine
-def test_npchat(username, messages, host, port, do_output, alive):
+def test_npchat(username, messages, host, port, do_output, alive, user_list):
     print("Connecting {username} on port {port}".format(
         username=username, port=port))
 
@@ -84,6 +84,10 @@ def test_npchat(username, messages, host, port, do_output, alive):
     else:
         reader_task = asyncio.Task(test_npchat_devnull(reader))
 
+    # Wait a random amount of time before logging in. This is to prevent
+    # overflowing the `listen` backlog
+    yield from asyncio.sleep(random.uniform(0, 2))
+
     # Login
     writer.write("ME IS {username}\n"
         .format(username=username)
@@ -92,7 +96,7 @@ def test_npchat(username, messages, host, port, do_output, alive):
     # Wait 1 second before sending messages
     yield from asyncio.sleep(1)
 
-    # Run for 30-60 seconds
+    # Run for an alive time, or forever
     if alive:
         end = time() + random.uniform(*alive)
     else:
@@ -102,7 +106,7 @@ def test_npchat(username, messages, host, port, do_output, alive):
         # Wait 1-5 seconds
         yield from asyncio.sleep(random.uniform(1, 5))
 
-        action = random.randrange(2)
+        action = random.randrange(3)
 
         # TODO: Send
         # BROADCAST
@@ -111,7 +115,11 @@ def test_npchat(username, messages, host, port, do_output, alive):
                 .format(name=username).encode('ascii'))
             writer.writelines(common.make_body(random.choice(messages)))
         elif action == 1:
-            writer.write('WHO HERE {name}\n'
+            writer.write('SEND {name} {recipient}\n'
+                .format(name=username, recipient=random.choice(user_list))
+                .encode('ascii'))
+        elif action == 2:
+            writer.write('WHO HERE {name}'
                 .format(name=username).encode('ascii'))
 
     # Wait 1 final second, then logout
@@ -122,7 +130,9 @@ def test_npchat(username, messages, host, port, do_output, alive):
 
 
 def main():
-    parser = argparse.ArgumentParser("NPchat testing client")
+    parser = argparse.ArgumentParser(description='''
+    NPchat testing client. This utility allows you to simulate many
+    simultaneous users on the chat server.''')
 
     parser.add_argument("-u", "--users", metavar='USERNAME', nargs='+',
         help="Specific username(s) to add", default=[])
