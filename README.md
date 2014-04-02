@@ -63,7 +63,7 @@ In addition to the standard testing via `netcat` or `telnet`, you can perform mu
 - `-h` `--help` Print a usage message and exit.
 - `-e N`, `--extra N` The number of users to run.
 - `-u USERNAME` `--users USERNAME` An extra named user. If given, the messages this user recieves will be formatted and printed to the screen.
-- `-m MESSAGE...` `--messages MESSAGE1...` Extra messages to send. These will be added to the built-in list of testing messages.
+- `-m MESSAGE1...` `--messages MESSAGE1...` Extra messages to send. These will be added to the built-in list of testing messages.
 - `-a MIN_TIME MAX_TIME` `--alive MIN_TIME MAX_TIME` If given, this option controls how long the clients will be alive for. They will pick a random number of seconds between `MIN_TIME` and `MAX_TIME` before logging out. When the last client logs out, the `test_client` program will end normally. If this option is not given, the clients will run forever.
 
 After options, give a hostname and any number of ports to connect to. Each client will select a random port to connect to from the ports given.
@@ -82,3 +82,4 @@ In various office hours sessions with Professor Goldschmidt, he confirmed that t
 - Sending chunked messages to UDP users, as long as all of the chunks fit in a single UDP datagram.
 - Silently ignoring sends to a nonexistent user.
     - If you send to multiple users (`SEND from_user recipient1 recipient2`), only the logged in users will receive the message.
+- Excess data on the action lines is ignored. Currently, the client data parser strips the directive (`SEND`, `BROADCAST`, etc) from the front of the line, then tokenizes the rest of the line by whitespace. The first token is the `from_user` and, the rest are taken as "command arguments," even though only SEND uses them.
