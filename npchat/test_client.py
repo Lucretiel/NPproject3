@@ -44,7 +44,7 @@ def test_npchat_reader(name, reader):
             body = []
             size = int(size[1:])
             while size != 0:
-                body_part = yield from readbody(int(size[1:]))
+                body_part = yield from readbody(size)
                 body.append(body_part)
                 size = int((yield from readline())[1:])
             body = ''.join(body)
@@ -73,9 +73,12 @@ def test_npchat_devnull(reader):
 
 @asyncio.coroutine
 def test_npchat(username, messages, host, port, do_output, alive, user_list):
+    # Wait a random amount of time before logging in. This is to prevent
+    # overflowing the `listen` backlog
+
+    yield from asyncio.sleep(random.uniform(0, 2))
     print("Connecting {username} on port {port}".format(
         username=username, port=port))
-
     # Connect to chat server
     reader, writer = yield from asyncio.open_connection(host, port)
 
@@ -83,10 +86,6 @@ def test_npchat(username, messages, host, port, do_output, alive, user_list):
         reader_task = asyncio.Task(test_npchat_reader(username, reader))
     else:
         reader_task = asyncio.Task(test_npchat_devnull(reader))
-
-    # Wait a random amount of time before logging in. This is to prevent
-    # overflowing the `listen` backlog
-    yield from asyncio.sleep(random.uniform(0, 2))
 
     # Login
     writer.write("ME IS {username}\n"
@@ -106,20 +105,22 @@ def test_npchat(username, messages, host, port, do_output, alive, user_list):
         # Wait 1-5 seconds
         yield from asyncio.sleep(random.uniform(1, 5))
 
-        action = random.randrange(3)
+        # 0-3 BROADCAST, 4 send to random user, 5 WHO HERE
+        action = random.randrange(6)
 
         # TODO: Send
         # BROADCAST
-        if action == 0:
+        if 0 <= action < 4 :
             writer.write('BROADCAST {name}\n'
                 .format(name=username).encode('ascii'))
             writer.writelines(common.make_body(random.choice(messages)))
-        elif action == 1:
+        elif action == 4:
             writer.write('SEND {name} {recipient}\n'
                 .format(name=username, recipient=random.choice(user_list))
                 .encode('ascii'))
-        elif action == 2:
-            writer.write('WHO HERE {name}'
+            writer.writelines(common.make_body(random.choice(messages)))
+        elif action == 5:
+            writer.write('WHO HERE {name}\n'
                 .format(name=username).encode('ascii'))
 
     # Wait 1 final second, then logout
@@ -165,9 +166,9 @@ def main():
         "encoding."] + args.messages
 
     tasks = [test_npchat(usernames[0], messages, args.host,
-        random.choice(args.ports), True, args.alive)]
+        random.choice(args.ports), True, args.alive, usernames)]
     tasks.extend(test_npchat(name, messages, args.host,
-            random.choice(args.ports), False, args.alive)
+            random.choice(args.ports), False, args.alive, usernames)
         for name in usernames[1:])
 
     asyncio.get_event_loop().run_until_complete(asyncio.wait(tasks))

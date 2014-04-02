@@ -76,6 +76,8 @@ In various office hours sessions with Professor Goldschmidt, he confirmed that t
 - The use of Python 3.4.
 - The use of `asyncio` in Python (ie, not using strictly low-level calls like `listen`, `accept`, `recv`, etc).
 - Custom verbose output formatting.
+    - Add port number to the sender/recipient line
+    - Split `RCVD from` blocks- they are verbosly printed as they are read
 - Simply reject UDP packets from an unrecognized source, without touching or logging out any users.
     - Instead simply wait for a UDP user to timeout.
 - Sending broadcasts to UDP users.
