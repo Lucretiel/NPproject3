@@ -19,7 +19,8 @@ def make_sender_line(name):
 
 def make_body(*body):
     '''
-    Create an encoded body, with correct length prefixing
+    Create an encoded body, with correct length prefixing. Body should be one
+    or more strings to be joined into a single, encoded message.
     '''
     body = ''.join(body).encode('ascii')
     if len(body) <= SHORT_SIZE:
