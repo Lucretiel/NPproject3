@@ -1,10 +1,4 @@
 '''
-Created on Mar 24, 2014
-
-@author: nathan
-'''
-
-'''
 Created on Mar 17, 2014
 
 @author: nathan
