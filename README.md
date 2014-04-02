@@ -14,8 +14,8 @@ This project is written in Python 3.4, and will require you to install Python 3.
 
 Once python3.4 is installed, you can run the chat server. You have a number of different options. The server is shipped with a standard setup.py, meaning you can install it globally to your system or locally to a virtualenv. You can also just run the main module, making sure that you've set your `PYTHONPATH` correctly.
 
-- For all run variants, first make sure to navigate to the root directory of the project (the one with `setup.py`) in it.
-- To install globally:
+1. For all run variants, first make sure to navigate to the root directory of the project (the one with `setup.py`) in it.
+2. To install globally:
     1. Run:
     
     sudo python3.4 setup.py install
@@ -24,7 +24,7 @@ Once python3.4 is installed, you can run the chat server. You have a number of d
     
     chat_server [args]
 
-- To install to a virtualenv:
+3. To install to a virtualenv:
     1. Create the virtualenv:
     
     python3.4 -m venv ./env
@@ -41,8 +41,7 @@ Once python3.4 is installed, you can run the chat server. You have a number of d
     
     chat_server [args]
 
-- To just run:
-
+4. To just run:
     1. Create a virtualenv
    
     python3.4 -m venv ./env
