@@ -68,7 +68,7 @@ def test_npchat_devnull(reader):
     # Read kilobyte chunks forever
     body = yield from reader.read(1024)
     while body:
-        body = yield from reader.reader(1024)
+        body = yield from reader.read(1024)
 
 
 @asyncio.coroutine
@@ -108,9 +108,8 @@ def test_npchat(username, messages, host, port, do_output, alive, user_list):
         # 0-3 BROADCAST, 4 send to random user, 5 WHO HERE
         action = random.randrange(6)
 
-        # TODO: Send
         # BROADCAST
-        if 0 <= action < 4 :
+        if 0 <= action < 4:
             writer.write('BROADCAST {name}\n'
                 .format(name=username).encode('ascii'))
             writer.writelines(common.make_body(random.choice(messages)))
@@ -127,7 +126,7 @@ def test_npchat(username, messages, host, port, do_output, alive, user_list):
     yield from asyncio.sleep(1)
     writer.write('LOGOUT {name}\n'.format(name=username).encode('ascii'))
 
-    asyncio.wait(reader_task, None)
+    asyncio.wait_for(reader_task, None)
 
 
 def main():

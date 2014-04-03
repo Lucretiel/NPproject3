@@ -54,7 +54,7 @@ def main():
     if args.multiverse:
         # Each port is its own manager
         tasks = [ChatManager(args.randoms, args.random_rate, args.verbose,
-            args.debug, args.timeouts).serve_forever(port)
+            args.debug, args.timeout).serve_forever(port)
             for port in args.ports]
     else:
         # One manager to rule them all
