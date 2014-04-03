@@ -55,6 +55,7 @@ class ChatManager:
           `verbose`: True for verbose output
           `debug`: True for debug output
           `random_rate`: How many normal messages to send between randoms
+          `timeout`: How long before clients time out
         '''
         self.chatters = {}
         self.random_rate = random_rate
@@ -62,6 +63,7 @@ class ChatManager:
             self.randoms = [b''.join(common.make_body(r))
                 for r in randoms]
 
+        self.debug = debug
         if debug:
             self.debug_print = stdout.write
         else:
@@ -103,7 +105,7 @@ class ChatManager:
             reader, writer = make_verbose_reader_writer(reader, writer)
 
         # Ensure transport is closed at end, and handle errors
-        with contextlib.closing(writer), self.handle_errors(writer):
+        with self.handle_errors(writer):
             # Get the ME IS line
             line = yield from reader.readline()
 
@@ -178,7 +180,8 @@ class ChatManager:
         '''
         Handler errors that leave the context. For ChatErrors, write a message
         to the client and log; for other Exceptions, send an error to the
-        client and re-raise.
+        client and re-raise. Close the writer when leaving the context, no
+        matter what
         '''
         try:
             yield
@@ -192,16 +195,30 @@ class ChatManager:
             # Inform client
             writer.write(message.encode('ascii'))
 
+        # Handle Timeouts
         except asyncio.TimeoutError as e:
             message = "ERROR: Timed Out\n"
 
             self.debug_print(message)
             writer.write(message.encode('ascii'))
 
-        # Inform client of other errors and reraise
+        # IncompleteReads are a client disconnect. Let them pass
+        except asyncio.IncompleteReadError:
+            pass
+
+        # Connection Error
+        except ConnectionError as e:
+            self.debug_print(
+                "ERROR: Unknown Connection Error: {e}\n".format(e=e))
+
+        # Something we haven't thought of? Inform client generically
         except Exception as e:
             # Inform client
-            writer.write('ERROR UNKNOWN SERVER ERROR\n'.encode('ascii'))
+            writer.write('ERROR: UNKNOWN SERVER ERROR\n'.encode('ascii'))
 
-            # Reraise
-            raise
+            # Reraise if we're in debug mode, for the stack trace
+            if self.debug:
+                raise
+
+        finally:
+            writer.close()
