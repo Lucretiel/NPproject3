@@ -48,10 +48,10 @@ No matter how you run the server, you pass it args normally. You can use the -h 
 - `-v` `--verbose` Display verbose output, as specified by the project. Professor Goldschmidt said in his office hours that the output format does not have to match that on the website exactly, and mine doesn't- it displays the `RCVD from` lines every time data is received, either as a line or a fixed-size block, rather than reading a whole message, parsing it, THEN outputting it verbosely.
 - `-d` `--debug` Enable debug prints. While the `-v` option enables verbose prints, which are emitted every time data is sent or received, this option enables prints for other events: Server begins listening, TCP connection established, messages are sent. It works alongside `-v`, but is much less verbose overall, especially with many connected clients.
 - `-e MESSAGE1...` `--extra MESSAGE1...` Extra messages. Each of this option's arguments are added as additional random messages that can be injected when the server sends random messages to clients.
-- `-r RATE` `--rate RATE` Set a different random rate. Set the number of normal messages that will be sent between each random message. Set to 0 to disable all random messages.
+- `-r RATE` `--rate RATE` Set a different random rate. Set the number of normal messages that will be sent between each random message. Set to 0 to disable all random messages. Defaults to 3.
 - `-E` `--exclude` Disable the default random messages. If this option is given along with `-e`, only the messages given to `-e` will be candidates for random messages. If no `-e` is given, then this option disables random messages entirely.
 - `-m` `--multiverse` Enable multiverse mode. In multiverse mode, each port is its own chat "universe-" each maintains a separate set of logged in clients, and those clients can only communicate with clients in the same universe (though UDP and TCP can still communicate with each other).
-- `-t SECONDS` `--timeout SECONDS` Set the client timeout. Clients (TCP or UDP) that don't send any data within this time frame will be logged out and disconnected.
+- `-t SECONDS` `--timeout SECONDS` Set the client timeout in seconds. Clients (TCP or UDP) that don't send any data within this time frame will be logged out and disconnected. Defaults to 60.
 
 Add the port(s) after the options. Press `^C` to terminate the server.
 
