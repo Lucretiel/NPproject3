@@ -8,7 +8,7 @@ Installation Notes
 
 This project is written in Python 3.4, and will require you to install Python 3.4 on your machine before you can run it. The easiest way to install Python 3.4 on Ubuntu 12.04 is via the Felix Krull deadsnakes repository. To install, run:
 
-```shell
+```
 sudo add-apt-repository -y ppa:fkrull/deadsnakes
 sudo apt-get update
 sudo apt-get -y install python3.4
@@ -19,14 +19,14 @@ Once Python 3.4 is installed, you can run the chat server. You have a number of 
 - For all run variants, first make sure to navigate to the root directory of the project (the one with `setup.py`) in it.
 - To install globally:
 
-```bash
+```
 sudo python3.4 setup.py install  # Install globally to system
 chat_server [args]  # Run
 ```
 
 - To install to a virtualenv:
-    
-```bash
+
+```
 python3.4 -m venv ./env  # Create the virtualenv
 source env/bin/activate  # Activate the virtualenv
 python3.4 setup.py       # Install
@@ -35,7 +35,7 @@ chat_server [args]       # Run
 
 - To just run:
 
-```bash
+```
 python3.4 -m npchat.server.main [args]  # Run the main module
 ```
 
@@ -62,7 +62,7 @@ In addition to the standard testing via `netcat` or `telnet`, you can perform mu
 
 - `-h` `--help` Print a usage message and exit.
 - `-e N`, `--extra N` The number of users to run.
-- `-u USERNAME` `--users USERNAME` An extra named user. If given, the messages this user recieves will be formatted and printed to the screen.
+- `-u USERNAME` `--users USERNAME` An extra named user. If given, the messages this user receives will be formatted and printed to the screen.
 - `-m MESSAGE1...` `--messages MESSAGE1...` Extra messages to send. These will be added to the built-in list of testing messages.
 - `-a MIN_TIME MAX_TIME` `--alive MIN_TIME MAX_TIME` If given, this option controls how long the clients will be alive for. They will pick a random number of seconds between `MIN_TIME` and `MAX_TIME` before logging out. When the last client logs out, the `test_client` program will end normally. If this option is not given, the clients will run forever.
 
@@ -77,14 +77,14 @@ In various office hours sessions with Professor Goldschmidt, he confirmed that t
 - The use of `asyncio` in Python (ie, not using strictly low-level calls like `listen`, `accept`, `recv`, etc).
 - Custom verbose output formatting.
     - Add port number to the sender/recipient line
-    - Split `RCVD from` blocks- they are verbosly printed as they are read
+    - Split `RCVD from` blocks- they are verbosely printed as they are read
 - Simply reject UDP packets from an unrecognized source, without touching or logging out any users.
     - Instead simply wait for a UDP user to timeout.
-- Sending broadcasts to UDP users.
+- Sending broadcasts to UDP users, since the lookup machinery is the same as a regular SEND
 - Sending chunked messages to UDP users, as long as all of the chunks fit in a single UDP datagram.
 - Silently ignoring sends to a nonexistent user.
     - If you send to multiple users (`SEND from_user recipient1 recipient2`), only the logged in users will receive the message.
 - Excess data on the action lines is ignored. Currently, the client data parser strips the directive (`SEND`, `BROADCAST`, etc) from the front of the line, then tokenizes the rest of the line by whitespace. The first token is the `from_user` and, the rest are taken as "command arguments," even though only SEND uses them.
 - Random messages do not have a trailing newline
-- The `WHO HERE` username list does not have a trainline newline
+- The `WHO HERE` username list does not have a trailing newline
 
