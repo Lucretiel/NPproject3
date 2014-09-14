@@ -66,11 +66,14 @@ class ChatManager:
         self.debug = debug
         if debug:
             self.debug_print = stdout.write
-        else:
-            self.debug_print = lambda message: None
 
         self.verbose = verbose
         self.timeout = timeout
+    
+    @staticmethod
+    def debug_print(message):
+        '''Overridden in init if debug printing is enabled'''
+        pass
 
     @asyncio.coroutine
     def serve_forever_tcp(self, port):
